@@ -11,7 +11,7 @@ class StatementParser
   def as_array
     parsed_csv.map do |row|
       payee = row[:payee]
-      payee = row[:memo].shift if @format == :sparda
+      payee = row[:memo].shift if (@format == :sparda || @format == :credit)
       {
         :date        => row[:cleared_date],
         :currency    => row[:currency],
@@ -93,3 +93,5 @@ module Qif
     end
   end
 end
+
+
