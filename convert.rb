@@ -61,6 +61,7 @@ class StatementParser
     CSV.parse(@plaintext, col_sep: ";") do |rec|
       reformatted.push CSV.generate_line(rec, col_sep: ",", force_quotes: true)
     end
+    reformatted.shift
     reformatted.join
   end
   
