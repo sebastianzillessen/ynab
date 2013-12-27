@@ -2,20 +2,42 @@
 require 'csv'
 require 'qif'
 
-module StatementParser
-  extend self
+class StatementParser
+  def initialize plaintext, format = :dkb_giro
+    @plaintext = plaintext
+    @format    = format
+  end
   
-  def dkb_giro plaintext
-    parsed_csv(plaintext).map do |row|
+  def as_array
+    parsed_csv.map do |row|
+      payee = row[:payee]
+      payee = row[:memo].shift if @format == :dkb_giro
       {
         :date        => row[:cleared_date],
         :currency    => row[:currency],
         :amount      => row[:amount],
-        :payee       => row[:memo].shift,
+        :payee       => payee,
         :memo        => row_memo(row)
       }
     end
   end
+  
+  def as_qif
+    qif_output = Qif::IO.new
+    Qif::Writer.new(qif_output, type = 'Bank', format = 'dd/mm/yyyy') do |qif|
+      as_array.each do |row|
+        qif << Qif::Transaction.new(
+          :date         => row[:date],
+          :amount       => row[:amount],
+          :memo         => row[:memo],
+          :payee        => row[:payee]
+        )
+      end
+    end    
+    qif_output.string
+  end
+  
+  private
   
   def row_memo row
     memo = ""
@@ -27,16 +49,16 @@ module StatementParser
     memo += "Memo: #{row[:memo].join(" ").gsub(/\s+/, ' ').strip} " unless row[:memo].empty?
   end
     
-  def parsed_csv plaintext
-    csv_array = CSV.parse(reformatted_csv(plaintext))
+  def parsed_csv
+    csv_array = CSV.parse reformatted_csv
     parsed_array = csv_array.map do |row|
       parsed_row row
     end
   end
   
-  def reformatted_csv plaintext
+  def reformatted_csv
     reformatted = []
-    CSV.parse(plaintext, col_sep: ";") do |rec|
+    CSV.parse(@plaintext, col_sep: ";") do |rec|
       reformatted.push CSV.generate_line(rec, col_sep: ",", force_quotes: true)
     end
     reformatted.join
@@ -61,18 +83,13 @@ module StatementParser
   end
 end
 
-Qif::Writer.open("#{file}.qif", type = 'Bank', format = 'dd/mm/yyyy') do |qif|
-  bank_input.each do |row|
-    payee = row[5]
-    date = row[2].gsub(".","/")
-    memo = row[9 .. 25].join(" ").to_s.strip.gsub("  "," ")
-    # Fix the values depending on what state your CSV data is in
-    row.each { |value| value.to_s.gsub!(/^\s+|\s+$/,'') }
-    qif << Qif::Transaction.new(
-      :date         => date,
-      :amount       => row[4],
-      :memo         => memo,
-      :payee        => payee
-    )
+module Qif
+  class IO
+    attr_accessor :string
+    def close; end
+    def write(data)
+      @string ||= ""
+      @string += data.to_s
+    end
   end
 end
