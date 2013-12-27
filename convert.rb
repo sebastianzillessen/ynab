@@ -3,7 +3,7 @@ require 'csv'
 require 'qif'
 
 class StatementParser
-  def initialize plaintext, format = :dkb_giro
+  def initialize plaintext, format = :giro
     @plaintext = plaintext
     @format    = format
   end
@@ -11,7 +11,7 @@ class StatementParser
   def as_array
     parsed_csv.map do |row|
       payee = row[:payee]
-      payee = row[:memo].shift if @format == :dkb_giro
+      payee = row[:memo].shift if @format == :sparda
       {
         :date        => row[:cleared_date],
         :currency    => row[:currency],
