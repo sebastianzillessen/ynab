@@ -2,6 +2,17 @@
 require 'csv'
 require 'qif'
 
+def run!
+  filename = ARGV[0]
+  format   = ARGV[1] # giro, credit, sparda
+  Encoding.default_external = 'UTF-8'
+  
+  file = File.read filename
+  statement = StatementParser.new file, format
+  puts statement.as_qif
+end
+
+
 class StatementParser
   def initialize plaintext, format = :giro
     @plaintext = plaintext
@@ -94,5 +105,7 @@ module Qif
     end
   end
 end
+
+run! if __FILE__==$0
 
 
