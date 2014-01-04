@@ -71,7 +71,7 @@ class StatementParser
       :booking_date   => row_array[1].to_s.strip.gsub(".", "/"),
       :cleared_date   => row_array[2].to_s.strip.gsub(".", "/"),
       :currency       => row_array[3].to_s.strip,
-      :amount         => row_array[4].to_s.strip,
+      :amount         => row_array[4].to_s.strip.gsub(",", "."),
       :payee          => row_array[5].to_s.strip,
       :sort_code      => row_array[6].to_s.strip,
       :account_number => row_array[7].to_s.strip,
