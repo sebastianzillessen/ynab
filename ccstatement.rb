@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'mechanize'
 require 'csv'
-require './qif'
+require 'lib/qif'
 
 # This code is modified from leoc's ledgit credit card handler. 
 # https://github.com/leoc/ledgit/blob/876fc22137dc640dd5116bc7caf9386fbbc41f3c/lib/handler/dkb/creditcard.rb

@@ -1,6 +1,6 @@
 # Ruby 1.9.2
 require 'csv'
-require './qif'
+require 'lib/qif'
 
 class HCBIParser
   def self.run!
