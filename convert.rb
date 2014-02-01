@@ -1,6 +1,6 @@
 # Ruby 1.9.2
 require 'csv'
-require 'qif'
+require 'lib/qif'
 
 def run!
   filename = ARGV[0]
@@ -12,14 +12,13 @@ def run!
   puts statement.as_qif
 end
 
-
 class StatementParser
   def initialize plaintext, format = :giro
     @plaintext = plaintext
     @format    = format
   end
   
-  def as_array
+  def statement
     parsed_csv.map do |row|
       payee = row[:payee]
       payee = row[:memo].shift if (@format == :sparda || @format == :credit)
@@ -31,21 +30,6 @@ class StatementParser
         :memo        => row_memo(row)
       }
     end
-  end
-  
-  def as_qif
-    qif_output = Qif::IO.new
-    Qif::Writer.new(qif_output, type = 'Bank', format = 'dd/mm/yyyy') do |qif|
-      as_array.each do |row|
-        qif << Qif::Transaction.new(
-          :date         => row[:date],
-          :amount       => row[:amount],
-          :memo         => row[:memo],
-          :payee        => row[:payee]
-        )
-      end
-    end    
-    qif_output.string
   end
   
   private
@@ -92,17 +76,6 @@ class StatementParser
       :comment        => row_array[11].to_s.strip,
       :memo           => row_array[12..25].map{ |x| x.to_s.strip.gsub(/\s+/, ' ')}
     }
-  end
-end
-
-module Qif
-  class IO
-    attr_accessor :string
-    def close; end
-    def write(data)
-      @string ||= ""
-      @string += data.to_s
-    end
   end
 end
 
