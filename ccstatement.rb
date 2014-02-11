@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'mechanize'
 require 'csv'
-require 'lib/qif'
+require './lib/qif'
 
 # This code is modified from leoc's ledgit credit card handler. 
 # https://github.com/leoc/ledgit/blob/876fc22137dc640dd5116bc7caf9386fbbc41f3c/lib/handler/dkb/creditcard.rb
@@ -36,15 +36,24 @@ class CreditStatement
 
     result = CSV.parse(data, col_sep: ';', headers: :first_row)
     result.map do |row|
+      memo = row['Umsatzbeschreibung']
+      if foreign_currency_amount(row[5])
+        memo = [foreign_currency_amount(row[5]),row['Umsatzbeschreibung']].join(". ")
+      end
       {
         :date   => Date.parse(row['Belegdatum']),
         :amount => row['Betrag (EUR)'].gsub('.', '').gsub(',', '.').to_f,
         :payee  => row['Umsatzbeschreibung'],
-        :memo   => row[5]
+        :memo   => memo
       }
     end.reverse
   end
 
+  def foreign_currency_amount string
+    return nil if string == ""
+    amount, currency = string.split(" ")
+    return "#{currency} #{sprintf '%.2f', amount.gsub(",", ".").to_f.abs}"
+  end
   
   def name_for_label label_text
     @agent.page.labels.select { |l| l.text =~ /#{label_text}/ }

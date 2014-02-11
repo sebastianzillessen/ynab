@@ -1,6 +1,6 @@
 # Ruby 1.9.2
 require 'csv'
-require 'lib/qif'
+require './lib/qif'
 
 class HCBIParser
   def self.run!
@@ -10,11 +10,12 @@ class HCBIParser
 
   def parse
     parsed_csv.map do |row|
+      payee = "Payee Unknown" if (!row[:payee] || row[:payee] == "")
       {
         :date        => Date.parse(row[:cleared_date]),
         :currency    => row[:currency],
         :amount      => row[:amount],
-        :payee       => row[:payee],
+        :payee       => payee,
         :memo        => row_memo(row)
       }
     end
