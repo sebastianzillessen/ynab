@@ -7,30 +7,32 @@ require './lib/qif'
 # https://github.com/leoc/ledgit/blob/876fc22137dc640dd5116bc7caf9386fbbc41f3c/lib/handler/dkb/creditcard.rb
 
 class CreditStatement
+  attr_accessor :csv
+
   def self.run!
     $stderr.print "Username: "; username = gets.strip
     $stderr.print "Password: "; password = gets.strip
     $stderr.print "Account: ";  account = gets.strip
 
     cc = CreditStatement.new(username, password, account)
-    puts Qif.print cc.statement, 'CCard'
+    cc.connect
+    puts Qif.print cc.hash, 'CCard'
   end
-  
+
   def initialize(username, password, account)
     @agent = Mechanize.new
     @username = username
     @password = password
     @account = account
   end
-  
-  def statement
+
+  def connect
     @login ||= login
-    @statement ||= parse(download_data)
+    @csv ||= raw_csv
   end
-  
-  private
-  
-  def parse data
+
+  def hash
+    data = @csv
     data.encode!('UTF-8', 'ISO-8859-1')
     data.gsub!(/\A.*\n\n.*\n\n/m, '')
 
@@ -49,6 +51,8 @@ class CreditStatement
     end.reverse
   end
 
+  private
+
   def foreign_currency_amount string
     return nil if string == ""
     amount, currency = string.split(" ")
@@ -60,7 +64,7 @@ class CreditStatement
       .first.node.attribute('for').value
   end
 
-  def download_data
+  def raw_csv
     form = @agent.page.forms[2]
 
     posting_date = (Date.today - 180).strftime('%d.%m.%Y')

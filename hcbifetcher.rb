@@ -3,12 +3,31 @@ require 'csv'
 require './lib/qif'
 
 class HCBIParser
+  attr_accessor :csv
+  attr_accessor :hash
+
   def self.run!
     hcbi = HCBIParser.new
-    puts Qif.print hcbi.parse, 'Bank'
+    hcbi.connect
+    puts Qif.print hcbi.hash, 'Bank'
   end
 
-  def parse
+  def connect
+    # To re-create the local aqbanking config files: 
+    # aqhbci-tool4 adduser -s https://hbci-pintan-by.s-hbci.de/PinTanServlet -b BLZ -u KTONR -N ANYNAME -t pintan
+    # aqhbci-tool4 adduserflags -f forceSsl3
+    # aqhbci-tool4 getsysid
+    # aqhbci-tool4 listaccounts
+    # aqbanking-cli request --balance
+    
+    # Other common commands: 
+    # aqbanking-cli request --transactions
+    # aqbanking-cli request --transactions > transaktionen.ctx
+    # aqbanking-cli listtrans < transaktionen.ctx
+    @csv ||= `aqbanking-cli -n -P ~/.aqbanking/pin request --transactions | aqbanking-cli listtrans`
+  end
+
+  def hash
     parsed_csv.map do |row|
       payee = "Payee Unknown" if (!row[:payee] || row[:payee] == "")
       {
@@ -39,7 +58,7 @@ class HCBIParser
   
   def reformatted_csv
     reformatted = []
-    CSV.parse(fetch_csv, col_sep: ";") do |rec|
+    CSV.parse(@csv, col_sep: ";") do |rec|
       reformatted.push CSV.generate_line(rec, col_sep: ",", force_quotes: true)
     end
     reformatted.shift
@@ -57,21 +76,6 @@ class HCBIParser
       :payee          => row_array[10..11].join.strip,
       :memo           => row_array[12..23].join(" ").strip,
     }
-  end
-
-  def fetch_csv
-    # To re-create the local aqbanking config files: 
-    # aqhbci-tool4 adduser -s https://hbci-pintan-by.s-hbci.de/PinTanServlet -b BLZ -u KTONR -N ANYNAME -t pintan
-    # aqhbci-tool4 adduserflags -f forceSsl3
-    # aqhbci-tool4 getsysid
-    # aqhbci-tool4 listaccounts
-    # aqbanking-cli request --balance
-    
-    # Other common commands: 
-    # aqbanking-cli request --transactions
-    # aqbanking-cli request --transactions > transaktionen.ctx
-    # aqbanking-cli listtrans < transaktionen.ctx
-    `aqbanking-cli -n -P ~/.aqbanking/pin request --transactions | aqbanking-cli listtrans`
   end
 end
 
