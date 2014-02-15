@@ -23,7 +23,7 @@ class CreditStatement
     @agent = Mechanize.new
     @username = username
     @password = password
-    @account = account
+    @account = (account == "" ? "Kreditkarte" : account)
   end
 
   def connect
