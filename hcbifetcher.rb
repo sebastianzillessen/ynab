@@ -29,6 +29,7 @@ class HCBIParser
 
   def hash
     parsed_csv.map do |row|
+      payee = row[:payee]
       payee = "Payee Unknown" if (!row[:payee] || row[:payee] == "")
       {
         :date        => Date.parse(row[:cleared_date]),
