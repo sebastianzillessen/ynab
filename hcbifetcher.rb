@@ -1,4 +1,4 @@
-# Ruby 1.9.2
+#!/usr/bin/env ruby
 require 'csv'
 require './lib/qif'
 
