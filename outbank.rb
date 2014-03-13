@@ -1,6 +1,6 @@
-# Ruby 1.9.2
+#!/usr/bin/env ruby
 require 'csv'
-require 'lib/qif'
+require './lib/qif'
 
 def run!
   filename = ARGV[0]
@@ -9,7 +9,7 @@ def run!
   
   file = File.read filename
   statement = StatementParser.new file, format
-  puts statement.as_qif
+  puts Qif.print statement.statement
 end
 
 class StatementParser
