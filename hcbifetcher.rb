@@ -9,7 +9,9 @@ class HCBIParser
   def self.run!
     hcbi = HCBIParser.new
     hcbi.connect
-    puts Qif.print hcbi.hash, 'Bank'
+    hcbi.hash.each do |key, value|
+      puts Qif.print value, 'Bank', "#{key}.qif"
+    end
   end
 
   def connect
@@ -28,17 +30,21 @@ class HCBIParser
   end
 
   def hash
+    # accounts = parsed_csv.map{ |row| row[:account_number] }.uniq
+    h = Hash.new
     parsed_csv.map do |row|
+      h[row[:local_account]] ||= Array.new
       payee = row[:payee]
       payee = "Payee Unknown" if (!row[:payee] || row[:payee] == "")
-      {
+      h[row[:local_account]].push ({
         :date        => Date.parse(row[:cleared_date]),
         :currency    => row[:currency],
         :amount      => row[:amount],
         :payee       => payee,
         :memo        => row_memo(row)
-      }
+        })
     end
+    h
   end
     
   private
@@ -59,7 +65,7 @@ class HCBIParser
   
   def reformatted_csv
     reformatted = []
-    CSV.parse(@csv, col_sep: ";") do |rec|
+    CSV.parse(@csv.force_encoding('utf-8'), col_sep: ";") do |rec|
       reformatted.push CSV.generate_line(rec, col_sep: ",", force_quotes: true)
     end
     reformatted.shift
@@ -68,6 +74,7 @@ class HCBIParser
   
   def parsed_row row_array
     {
+      :local_account  => row_array[2].to_s.strip,
       :sort_code      => row_array[3].to_s.strip,
       :account_number => row_array[4].to_s.strip,
       :currency       => row_array[8].to_s.strip,

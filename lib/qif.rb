@@ -11,8 +11,7 @@ module Qif
     end
   end
 
-  def self.print data, type = 'Bank', format = 'dd/mm/yyyy'
-    qif_output = IO.new
+  def self.print data, type = 'Bank', qif_output = IO.new, format = 'dd/mm/yyyy'
     Writer.new(qif_output, type, format) do |qif|
       data.each do |row|
         qif << Transaction.new(
@@ -23,6 +22,6 @@ module Qif
         )
       end
     end
-    qif_output.string
+    qif_output.string if qif_output.respond_to?(:string)
   end
 end
