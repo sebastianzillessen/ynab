@@ -1,89 +1,16 @@
 #!/usr/bin/env ruby
-require 'csv'
 require './lib/qif'
+require './lib/aqbanking'
 
-class HCBIParser
-  attr_accessor :csv
+module HCBIParser
+  extend self
   attr_accessor :hash
 
   def self.run!
-    hcbi = HCBIParser.new
-    hcbi.connect
-    hcbi.hash.each do |key, value|
+    t = AQBanking.condensed_transactions
+    t.each do |key, value|
       puts Qif.print value, 'Bank', "#{key}.qif"
     end
-  end
-
-  def connect
-    # To re-create the local aqbanking config files: 
-    # aqhbci-tool4 adduser -s https://hbci-pintan-by.s-hbci.de/PinTanServlet -b BLZ -u KTONR -N ANYNAME -t pintan
-    # aqhbci-tool4 adduserflags -f forceSsl3
-    # aqhbci-tool4 getsysid
-    # aqhbci-tool4 listaccounts
-    # aqbanking-cli request --balance
-    
-    # Other common commands: 
-    # aqbanking-cli request --transactions
-    # aqbanking-cli request --transactions > transaktionen.ctx
-    # aqbanking-cli listtrans < transaktionen.ctx
-    @csv ||= `aqbanking-cli -n -P ~/.aqbanking/pin request --transactions | aqbanking-cli listtrans`
-  end
-
-  def hash
-    # accounts = parsed_csv.map{ |row| row[:account_number] }.uniq
-    h = Hash.new
-    parsed_csv.map do |row|
-      h[row[:local_account]] ||= Array.new
-      payee = row[:payee]
-      payee = "Payee Unknown" if (!row[:payee] || row[:payee] == "")
-      h[row[:local_account]].push ({
-        :date        => Date.parse(row[:cleared_date]),
-        :currency    => row[:currency],
-        :amount      => row[:amount],
-        :payee       => payee,
-        :memo        => row_memo(row)
-        })
-    end
-    h
-  end
-    
-  private
-  
-  def row_memo row
-    memo = ""
-    memo += "BLZ: #{row[:sort_code]} "      unless row[:sort_code].empty?
-    memo += "KTO: #{row[:account_number]} " unless row[:account_number].empty?
-    memo += "Memo: #{row[:memo]} "          unless row[:memo].empty?
-  end
-    
-  def parsed_csv
-    csv_array = CSV.parse reformatted_csv
-    parsed_array = csv_array.map do |row|
-      parsed_row row
-    end
-  end
-  
-  def reformatted_csv
-    reformatted = []
-    CSV.parse(@csv.force_encoding('utf-8'), col_sep: ";") do |rec|
-      reformatted.push CSV.generate_line(rec, col_sep: ",", force_quotes: true)
-    end
-    reformatted.shift
-    reformatted.join
-  end
-  
-  def parsed_row row_array
-    {
-      :local_account  => row_array[2].to_s.strip,
-      :sort_code      => row_array[3].to_s.strip,
-      :account_number => row_array[4].to_s.strip,
-      :currency       => row_array[8].to_s.strip,
-      :amount         => row_array[7].to_s.strip,
-      :booking_date   => row_array[6].to_s.strip,
-      :cleared_date   => row_array[5].to_s.strip,
-      :payee          => row_array[10..11].join.strip,
-      :memo           => row_array[12..23].join(" ").strip,
-    }
   end
 end
 
