@@ -7,19 +7,7 @@ require './lib/qif'
 # This code is modified from leoc's ledgit credit card handler. 
 # https://github.com/leoc/ledgit/blob/876fc22137dc640dd5116bc7caf9386fbbc41f3c/lib/handler/dkb/creditcard.rb
 
-class CreditStatement
-  attr_accessor :csv
-
-  def self.run!
-    $stderr.print "Username: "; username = gets.strip
-    $stderr.print "Password: "; password = gets.strip
-    $stderr.print "Account: ";  account = gets.strip
-
-    cc = CreditStatement.new(username, password, account)
-    cc.connect
-    puts Qif.print cc.hash, 'CCard'
-  end
-
+class CreditCardDKB
   def initialize(username, password, account)
     @agent = Mechanize.new
     @username = username
@@ -32,13 +20,25 @@ class CreditStatement
     @csv ||= raw_csv
   end
 
+  # This is to make the output of this method similar to the one from aqbanking.
+
+  def condensed_transactions
+    h = Hash.new
+    h[:dkb_credit] = Array.new
+    hash.map do |transaction|
+      h[:dkb_credit].push(transaction)
+    end
+    h
+  end
+
+  private
+
   def hash
     data = @csv
     data.encode!('UTF-8', 'ISO-8859-1')
     data.gsub!(/\A.*\n\n.*\n\n/m, '')
 
-    result = CSV.parse(data, col_sep: ';', headers: :first_row)
-    result.map do |row|
+    CSV.parse(data, col_sep: ';', headers: :first_row).map do |row|
       memo = row['Umsatzbeschreibung']
       if foreign_currency_amount(row[5])
         memo = [foreign_currency_amount(row[5]),row['Umsatzbeschreibung']].join(". ")
@@ -51,8 +51,6 @@ class CreditStatement
       }
     end.reverse
   end
-
-  private
 
   def foreign_currency_amount string
     return nil if string == ""
@@ -101,5 +99,3 @@ class CreditStatement
     @agent.page.meta_refresh.first.click unless @agent.page.meta_refresh.empty?
   end
 end
-
-CreditStatement.run! if __FILE__==$0
