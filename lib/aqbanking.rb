@@ -67,6 +67,7 @@ class AQBanking
     extend self
     def csv
       unparsed_csv = `aqbanking-cli -n -P ~/.aqbanking/pin request --transactions | aqbanking-cli listtrans`
+      unparsed_csv.encode!('UTF-8', 'ISO-8859-1')
       CSV.parse(unparsed_csv, col_sep: ';', headers: true).map do |row|
         row = row.to_a.map{|x| x[1] }
         {
