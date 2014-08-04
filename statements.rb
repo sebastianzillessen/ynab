@@ -7,19 +7,11 @@ module StatementFetch
   extend self
 
   def self.run!
-    t = AQBanking.condensed_transactions
-    
-    $stderr.print "Username: "; username = gets.strip
-    $stderr.print "Password: "; password = gets.strip
-    $stderr.print "Account: ";  account = gets.strip
-
-    cc = CreditCardDKB.new(username, password, account)
-    cc.connect
-    t.merge!(cc.condensed_transactions)
-
-    t.each do |key, value|
-      puts Qif.print value, 'Bank', "#{key}.qif"
+    t = [AQBanking, CreditCardDKB].inject({}) do |transactions, klass| 
+      transactions.merge! klass.transactions!
     end
+    
+    Qif.print_many t
   end
 end
 

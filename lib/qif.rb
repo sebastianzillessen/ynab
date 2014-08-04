@@ -10,18 +10,25 @@ module Qif
       @string += data.to_s
     end
   end
+  
+  def self.print_many data, type = 'Bank', format = 'dd/mm/yyyy'
+    data.each do |account, statement|
+      Qif.print statement, type, "#{account}.qif", format
+    end
 
-  def self.print data, type = 'Bank', qif_output = IO.new, format = 'dd/mm/yyyy'
+  end
+
+  def self.print statement, type = 'Bank', qif_output = IO.new, format = 'dd/mm/yyyy'
     Writer.new(qif_output, type, format) do |qif|
-      data.each do |row|
+      statement.each do |transaction|
         qif << Transaction.new(
-          :date   => row[:date],
-          :amount => row[:amount],
-          :memo   => row[:memo],
-          :payee  => row[:payee]
+          :date   => transaction[:date],
+          :amount => transaction[:amount],
+          :memo   => transaction[:memo],
+          :payee  => transaction[:payee]
         )
       end
     end
-    qif_output.string if qif_output.respond_to?(:string)
+    qif_output.respond_to?(:string) ? qif_output.string : true
   end
 end
