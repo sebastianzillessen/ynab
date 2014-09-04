@@ -90,8 +90,8 @@ class CreditCardDKB
       @agent.get 'https://banking.dkb.de:443/dkb/-?$javascript=disabled'
       form = @agent.page.forms.first
 
-      form.field_with(name: name_for_label(/Anmeldename/)).value = username
-      form.field_with(name: name_for_label(/PIN/)).value = password
+      form.field_with(name: 'j_username').value = username
+      form.field_with(name: 'j_password').value = password
 
       button = form.button_with(value: /Anmelden/)
 
@@ -119,13 +119,6 @@ class CreditCardDKB
 
       @agent.page.link_with(href: /csvExport/).click
       @agent.page.body
-    end
-    
-    private 
-    
-    def name_for_label label_text
-      @agent.page.labels.select { |l| l.text =~ /#{label_text}/ }
-        .first.node.attribute('for').value
     end
   end
 end
