@@ -15,7 +15,7 @@ class CreditCardDKB
   end
 
   def from_file filename
-    @csv = File.open(filename).read
+    @csv = { :from_file => File.open(filename).read }
   end
   
   def from_web username = nil, password = nil, account = nil
@@ -25,36 +25,42 @@ class CreditCardDKB
     unless password
       $stderr.print "Password: "; password = gets.strip
     end
-    unless account
-      $stderr.print "Account: ";  account = gets.strip
-    end
 
-    account = (account == "" ? "Kreditkarte" : account)
     scraper = Scraper.new username, password, account
-    @csv = scraper.csv(account)
+    @csv = {}
+
+    accounts = scraper.enumerate_accounts
+    accounts.each do |account|
+      account_filename = "dkb_credit_" + account.gsub(/[^0-9a-zA-Z]/, "_").gsub(/_+/, "_").downcase
+      @csv[account_filename.to_sym] = scraper.csv(account)
+    end
   end
 
   def transactions
     sanitise
-    {:creditcard_dkb => parse}
+    parse
   end
 
   private
   
   def sanitise
-    @data = @csv.split("\n").drop(7).join("\n")
-    @data.encode!('UTF-8', 'ISO-8859-1')
+    @csv.each do |key,value|
+      @csv[key] = value.split("\n").drop(7).join("\n")
+      @csv[key].encode!('UTF-8', 'ISO-8859-1')
+    end
   end
   
   def parse
-    CSV.parse(@data, col_sep: ';', headers: :first_row).map do |row|
-      {
-        :date   => Date.parse(row['Belegdatum']),
-        :amount => amount(row),
-        :payee  => row['Umsatzbeschreibung'],
-        :memo   => memo(row)
-      }
-    end.reverse
+    @csv.each do |key,value|
+      @csv[key] = CSV.parse(value, col_sep: ';', headers: :first_row).map do |row|
+        {
+          :date   => Date.parse(row['Belegdatum']),
+          :amount => amount(row),
+          :payee  => row['Umsatzbeschreibung'],
+          :memo   => memo(row)
+        }
+      end.reverse
+    end
   end
   
   def amount row
@@ -96,14 +102,18 @@ class CreditCardDKB
       button = form.button_with(value: /Anmelden/)
 
       @agent.submit(form, button)
-
-      # go to the transaction listing for the correct account type
-      @agent.page.link_with(text: /Kreditkartenumsätze/).click
-      @agent.page.meta_refresh.first.click unless @agent.page.meta_refresh.empty?
     end
     
+    def enumerate_accounts
+      @agent.page.link_with(text: /Kreditkartenumsätze/).click
+      @agent.page.meta_refresh.first.click unless @agent.page.meta_refresh.empty?
+      form = @agent.page.forms[2]
+      form.field_with(name: /slCreditCard/).options.map{|x| x.text }
+    end
     
     def csv account
+      @agent.page.link_with(text: /Kreditkartenumsätze/).click
+      @agent.page.meta_refresh.first.click unless @agent.page.meta_refresh.empty?
       form = @agent.page.forms[2]
 
       posting_date = (Date.today - 180).strftime('%d.%m.%Y')
@@ -118,7 +128,9 @@ class CreditCardDKB
       form.submit
 
       @agent.page.link_with(href: /csvExport/).click
-      @agent.page.body
+      ret = @agent.page.body
+      @agent.back
+      ret
     end
   end
 end
