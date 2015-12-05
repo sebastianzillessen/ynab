@@ -3,3 +3,5 @@ source "http://rubygems.org"
 
 gem "qif"
 gem "mechanize"
+gem 'pry'
+gem 'hpricot'
