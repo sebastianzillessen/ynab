@@ -6,10 +6,9 @@ require_relative 'qif'
 require_relative 'qif_export'
 
 class DebitCardDKB < QifExport
-  def from_file filename
-    @csv = {:from_file => File.open(filename).read}
+  def self.credential_selector
+    "dkb.debit"
   end
-
   def from_web username, password, account, attrs={}
     @csv = {}
     scraper = Scraper.new(username, password, account)
@@ -30,11 +29,7 @@ class DebitCardDKB < QifExport
   end
 
   def parse
-
     @csv.each do |key, value|
-      puts key
-      puts value
-      puts "----"
       @csv[key] = CSV.parse(value, col_sep: ';', headers: :first_row).map do |row|
         {
           :date => Date.parse(row['Buchungstag']),
@@ -53,7 +48,12 @@ class DebitCardDKB < QifExport
   def memo row
     memo = row['Verwendungszweck']
     # replace 'DATUM 30.10.2015, 18.26 UHR1.TAN 123456' in memo
-    memo.gsub(/DATUM .*TAN \d/, "")
+    memo = memo.gsub(/DATUM .*TAN \d/, "")
+    #remove "2015-09-24T16:54:00 Karte0 2099-12"
+    memo = memo.gsub(/\d+-\d+-\d+.+Karte.+-\d+/," ")
+    # remove double spaces
+    memo = memo.gsub(/\s\s+/," ")
+    memo
   end
 
 

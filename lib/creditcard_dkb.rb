@@ -10,8 +10,8 @@ require_relative 'qif_export'
 # https://github.com/leoc/ledgit/blob/876fc22137dc640dd5116bc7caf9386fbbc41f3c/lib/handler/dkb/creditcard.rb
 
 class CreditCardDKB < QifExport
-  def from_file filename
-    @csv = {:from_file => File.open(filename).read}
+  def self.credential_selector
+    "dkb.credit"
   end
 
   def from_web username, password, account, attrs={}
@@ -37,14 +37,19 @@ class CreditCardDKB < QifExport
   def parse
     @csv.each do |key, value|
       @csv[key] = CSV.parse(value, col_sep: ';', headers: :first_row).map do |row|
-        {
-          :date => Date.parse(row['Belegdatum']),
-          :amount => amount(row),
-          :payee => row['Umsatzbeschreibung'],
-          :memo => memo(row)
-        }
+        begin
+          {
+            :date => Date.parse(row['Belegdatum']),
+            :amount => amount(row),
+            :payee => row['Umsatzbeschreibung'],
+            :memo => memo(row)
+          }
+        rescue Exception => e
+          puts "Could not parse row: #{row}"
+          puts "   #{e.inspect}"
+        end
       end.reverse
-    end
+    end.reject { |k| k.nil? }
   end
 
   def amount row
@@ -53,7 +58,7 @@ class CreditCardDKB < QifExport
 
 
   def memo row
-    memo = row['Umsatzbeschreibung']
+    memo = [row['Umsatzbeschreibung'], row['Beschreibung']].join(" ").strip
 
     amount, currency = row[5].split(" ")
     if amount
@@ -61,6 +66,10 @@ class CreditCardDKB < QifExport
       foreign_currency_amount = [currency, amount].join(" ")
       memo = [foreign_currency_amount, memo].join(". ")
     end
+    memo = memo.gsub(/DATUM .*TAN \d/, "")
+    # remove double spaces
+    memo = memo.gsub(/\s\s+/, " ")
+
     return memo
   end
 

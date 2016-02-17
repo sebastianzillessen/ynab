@@ -16,10 +16,6 @@ class CreditCardMM
     cc.transactions
   end
 
-  def from_file filename
-    @csv = File.open(filename).read
-  end
-  
   def from_web username = nil, password = nil, account = nil
     unless username
       $stderr.print "Username: "; username = gets.strip

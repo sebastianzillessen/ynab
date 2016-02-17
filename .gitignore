@@ -1,2 +1,5 @@
 .DS_Store
 *.qif
+credentials.yml
+.idea/
+Gemfile.lock

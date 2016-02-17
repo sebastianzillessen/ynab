@@ -3,15 +3,15 @@ require './lib/qif'
 require './lib/aqbanking'
 require './lib/creditcard_dkb'
 require './lib/debit_dkb'
+require './lib/debit_lloyds'
 
 module StatementFetch
   extend self
 
   def self.run!
-    t = [AQBanking, CreditCardDKB, DebitCardDKB].inject({}) do |transactions, klass|
+    t = [CreditCardDKB, DebitCardDKB, DebitLloyds].inject({}) do |transactions, klass|
       transactions.merge! klass.transactions!
     end
-    
     Qif.print_many t
   end
 end
