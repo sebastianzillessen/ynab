@@ -8,8 +8,14 @@ Make sure your installation works by running:
 
      brew install python
      brew linkapps python
-     pip install mechanize
-     gem bundle install
+     brew link python
+     brew install qt5
+     brew link --force qt5
+     which qmake
+     sudo easy_install pip
+     sudo pip install mechanize
+     gem install bundler
+     bundle install
 
 
 3) run `ruby ./statements.rb`
