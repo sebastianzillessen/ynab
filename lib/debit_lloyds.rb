@@ -48,7 +48,6 @@ class DebitLloyds < QifExport
     if @csv.nil?
       @csv={}
     end
-    puts "file contains #{@files}"
     @files.each_with_index do |f, i|
       qif = Qif::Reader.new(open(f))
       Qif::Writer.open(file.gsub(".qif", "eur.qif"), type='Bank', format="dd/mm/yyyy") do |writer|
