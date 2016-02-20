@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'qif'
+require 'fileutils'
 
 module Qif
   class IO
@@ -22,6 +23,11 @@ module Qif
   end
 
   def self.print statement, type = 'Bank', qif_output = IO.new, format = 'dd/mm/yyyy'
+    dirname = File.dirname(qif_output)
+    unless File.directory?(dirname)
+      FileUtils.mkdir_p(dirname)
+    end
+
     Writer.new(qif_output, type, format) do |qif|
       statement.each do |transaction|
         if transaction.nil? || transaction.empty?
@@ -35,6 +41,7 @@ module Qif
         )
       end
     end
+    puts "Saved export to #{qif_output}."
     return true
   end
 end

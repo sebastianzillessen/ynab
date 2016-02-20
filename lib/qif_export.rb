@@ -8,7 +8,7 @@ class QifExport
   end
 
   def initialize(attrs={})
-    puts "Starting #{self.class.name} import"
+    print "Starting #{self.class.name} import"
   end
 
   def transactions()
@@ -26,6 +26,7 @@ class QifExport
       cc.from_web(*login_data(att), att)
       trans.merge! cc.transactions
     end
+    puts " Done!"
     trans
   end
 
